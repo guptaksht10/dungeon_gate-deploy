@@ -1,0 +1,110 @@
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+
+model Player {
+  id        String  @id @default(auto()) @map("_id") @db.ObjectId
+
+  nickname  String  @unique
+
+  level Int @default(0) // 0=login,1=pregate,2=l1...
+
+  pregateClear Boolean @default(false)
+
+  level1Clear  Boolean @default(false)
+  level2Clear  Boolean @default(false)
+  level3Clear  Boolean @default(false)
+  level4Clear  Boolean @default(false)
+  level5Clear  Boolean @default(false)
+  level6Clear  Boolean @default(false)
+  level7Clear  Boolean @default(false)
+
+  hearts Int     @default(3)
+  locked Boolean @default(false)
+
+  attempts    Int @default(0)
+  panicFails  Int @default(0)
+
+  memoryWiped Boolean @default(false)
+  flagged     Boolean @default(false)
+
+  profile Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+
+model Question {
+  id       String   @id @default(auto()) @map("_id") @db.ObjectId
+
+  stage    String   // pregate, level1, level2...
+
+  level    Int
+  order    Int
+
+  type     String   // text, choice, timer
+
+  question String
+
+  options  String[]
+  answer   String
+
+  hint     String
+
+  @@unique([stage, level, order])
+}
+
+
+model AnswerLog {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+
+  nickname  String
+
+  stage     String   // pregate, level1...
+  level     Int
+
+  question  Int
+
+  answer    String
+  verdict   String
+  correct   Boolean
+
+  timeTaken Int?
+
+  attempt   Int      // which attempt number
+
+  createdAt DateTime @default(now())
+}
+
+
+model GlobalLock {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+
+  locked    Boolean  @default(false)
+
+  reason    String?
+
+  updatedAt DateTime @updatedAt
+}
+
+
+model AdminLog {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+
+  action    String   // wipe, lock, unlock, override
+
+  target    String   // nickname
+
+  stage     String?  // where it happened
+
+  note      String?
+
+  createdAt DateTime @default(now())
+}
