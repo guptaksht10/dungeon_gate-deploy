@@ -34,8 +34,6 @@ export const metadata: Metadata = {
     images: [
       {
         url: "/scripture.jpg",
-        width: 1200,
-        height: 630,
       },
     ],
   },
