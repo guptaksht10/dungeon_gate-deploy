@@ -31,8 +31,8 @@ const QUESTIONS = [
 export default function PanicMode() {
   const router = useRouter();
   const params = useParams();
+  const [nick, setNick] = useState<string | null | undefined>(undefined);
 
-  const [nick, setNick] = useState<string | null>(null);
   const [time, setTime] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [finished, setFinished] = useState(false);
@@ -52,14 +52,16 @@ export default function PanicMode() {
 
   useEffect(() => {
     if (typeof window === "undefined") return;
-    const storedNick = window.localStorage.getItem("player_nick");
-    setNick(storedNick);
+
+    const storedNick = localStorage.getItem("player_nick");
+    setNick(storedNick); // can be null or string
   }, []);
 
   /* ---------------- VALIDATE PLAYER ---------------- */
 
   useEffect(() => {
-    if (nick === null) return;
+    if (nick === undefined) return; // wait until loaded
+
 
     if (!nick) {
       router.push("/");
