@@ -18,54 +18,57 @@ export default function ShadowRewardPage() {
   const [loading, setLoading] = useState(true);
   const [authorized, setAuthorized] = useState(false);
   const [cheated, setCheated] = useState(false);
-  const [nick, setNick] = useState<string | null>(null);
+  const [nick, setNick] = useState<string | null | undefined>(undefined);
+
 
   /* ---------------- LOAD NICK SAFELY ---------------- */
-
   useEffect(() => {
     if (typeof window === "undefined") return;
-    setNick(localStorage.getItem("player_nick"));
+
+    const storedNick = localStorage.getItem("player_nick");
+    setNick(storedNick); // can be null or string
   }, []);
+
 
   /* ---------------- ACCESS CHECK ---------------- */
 
-  useEffect(() => {
-    if (nick === null) return;
+ useEffect(() => {
+  if (nick === undefined) return; // wait until loaded
 
-    if (!nick) {
-      setCheated(true);
-      setLoading(false);
-      return;
-    }
+  if (!nick) {
+    setCheated(true);
+    setLoading(false);
+    return;
+  }
 
-    const check = async () => {
-      try {
-        const res = await fetch("/api/game/status", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ nick }),
-          cache: "no-store",
-        });
+  const check = async () => {
+    try {
+      const res = await fetch("/api/game/status", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ nick }),
+        cache: "no-store",
+      });
 
-        if (!res.ok) throw new Error("Bad response");
+      if (!res.ok) throw new Error("Bad response");
 
-        const d = await res.json();
+      const d = await res.json();
 
-        if (!d?.ok || d.locked || !d.level2) {
-          setCheated(true);
-          return;
-        }
-
-        setAuthorized(true);
-      } catch {
+      if (!d?.ok || d.locked || !d.level2) {
         setCheated(true);
-      } finally {
-        setLoading(false);
+        return;
       }
-    };
 
-    check();
-  }, [nick]);
+      setAuthorized(true);
+    } catch {
+      setCheated(true);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  check();
+}, [nick]);
 
   /* ---------------- GLOW PULSE (SAFE) ---------------- */
 
