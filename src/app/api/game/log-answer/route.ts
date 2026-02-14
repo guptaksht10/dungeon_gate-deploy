@@ -7,83 +7,69 @@ import { prisma } from "@/lib/prisma";
 
 export async function POST(req: Request) {
   try {
-    const {
-      nickname,
-      stage,
-      level,
-      logs,
-      attempt,
-    } = await req.json();
+    const body = await req.json();
 
-    /* ---------- BASIC VALIDATION ---------- */
+    const nickname =
+      typeof body.nickname === "string"
+        ? body.nickname
+        : "unknown";
 
-    if (
-      !nickname ||
-      !stage ||
-      !Array.isArray(logs) ||
-      logs.length === 0
-    ) {
+    const stage =
+      typeof body.stage === "string"
+        ? body.stage
+        : "unknown";
+
+    const level =
+      typeof body.level === "number"
+        ? body.level
+        : 0;
+
+    const attempt =
+      typeof body.attempt === "number"
+        ? body.attempt
+        : 0;
+
+    const logs = Array.isArray(body.logs)
+      ? body.logs
+      : [];
+
+    if (logs.length === 0) {
       return NextResponse.json(
-        { ok: false, error: "Invalid payload" },
+        { ok: false, error: "No logs provided" },
         { status: 400 }
       );
     }
 
-    /* ---------- PLAYER CHECK ---------- */
-
-    const player = await prisma.player.findUnique({
-      where: { nickname },
-    });
-
-    if (!player) {
-      return NextResponse.json(
-        { ok: false, error: "Player not found" },
-        { status: 404 }
-      );
-    }
-
-    /* ---------- STAGE PERMISSION ---------- */
-
-    const allowedStage =
-      stage === "pregate" ||
-      (stage === "level1" && player.pregateClear) ||
-      (stage === "level2" && player.level1Clear) ||
-      (stage === "level3" && player.level2Clear) ||
-      (stage === "level4" && player.level3Clear) ||
-      (stage === "level5" && player.level4Clear);
-
-    if (!allowedStage) {
-      return NextResponse.json(
-        { ok: false, error: "Stage not unlocked" },
-        { status: 403 }
-      );
-    }
-
-    /* ---------- ATTEMPT SYNC ---------- */
-
-    const safeAttempt =
-      typeof attempt === "number"
-        ? attempt
-        : player.attempts;
-
-    /* ---------- SANITIZE LOGS ---------- */
-
     const data = logs.map((l: any) => ({
       nickname,
       stage,
-      level: Number(level) || 0,
-      question: Number(l.question) || 0,
-      answer: String(l.answer || ""),
-      verdict: String(l.verdict || ""),
+      level,
+
+      // IMPORTANT: must be number (schema expects Int)
+      question:
+        typeof l.question === "number"
+          ? l.question
+          : 0,
+
+      answer:
+        typeof l.answer === "string"
+          ? l.answer
+          : JSON.stringify(l.answer ?? ""),
+
+      verdict:
+        typeof l.verdict === "string"
+          ? l.verdict
+          : "",
+
       correct: Boolean(l.correct),
+
       timeTaken:
         typeof l.timeTaken === "number"
           ? l.timeTaken
           : null,
-      attempt: safeAttempt,
-    }));
 
-    /* ---------- SAVE ---------- */
+      attempt,
+    }));
 
     await prisma.answerLog.createMany({
       data,
@@ -91,8 +77,8 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ ok: true });
 
-  } catch (err) {
-    console.error("LOG ANSWER ERROR:", err);
+  } catch (error) {
+    console.error("LOG ANSWER ERROR:", error);
 
     return NextResponse.json(
       { ok: false, error: "Internal server error" },
